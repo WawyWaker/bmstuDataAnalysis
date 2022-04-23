@@ -1,5 +1,5 @@
 from enum import Enum
-
+import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import time
@@ -16,7 +16,7 @@ class DataParser:
     def __init__(self):
         self.chromeDriver = webdriver.Chrome()
 
-        self._mainPage = 'https://eu.bmstu.ru/'
+        self._mainPage = 'https://eu.bmstu.ru'
         self._sessionLinks = []
 
         self.chromeDriver.get(self._mainPage)
@@ -33,3 +33,12 @@ class DataParser:
             return self._sessionLinks
         else:
             return self._sessionLinks
+
+    def __GetAllGroups(self, sessionLink : str):
+        self.chromeDriver.get(sessionLink)
+        soup = BeautifulSoup(self.chromeDriver.page_source)
+        filteredLis = list(filter(lambda li: li.find("b"), soup.find("ul", id="session-structure").find_all("li")))
+
+        allGroupLinks = [li.find_all("a") for li in filteredLis]
+        return [li for subLi in allGroupLinks for li in subLi]
+        
