@@ -42,3 +42,33 @@ class DataParser:
         allGroupLinks = [li.find_all("a") for li in filteredLis]
         return [li for subLi in allGroupLinks for li in subLi]
         
+    def __CorrectField(self, mark : str):
+        if mark == "Зчт":
+            return 1
+        elif mark == "Отл":
+            return 5
+        elif mark == "Хор":
+            return 4
+        elif mark == "Удов":
+            return 3
+        else:
+            return 0
+
+    def __GetGroupData(self, groupLink : str) -> pd.DataFrame:
+        self.chromeDriver.get(groupLink)
+        soup = BeautifulSoup(self.chromeDriver.page_source)
+
+        table = soup.find("table", {"class" : "eu-table sortable-table"})
+
+        tHeadValues = table.find("thead").find_all("th") 
+        tBodyRows = table.find("tbody").find_all("tr")
+        
+        subjects = ["ФИО", "Номер зачетки"] + [th.find("span").text for th in tHeadValues[3:]]
+        data = [[td.find("span").text for td in row.find_all("td")[1:]] for row in tBodyRows]
+
+        #converting str marks to int
+        for i in range(len(data)):
+            for j in range(2, len(data[0])):
+                data[i][j] = self.__CorrectField(data[i][j])
+
+        return pd.DataFrame(data, columns=subjects)
