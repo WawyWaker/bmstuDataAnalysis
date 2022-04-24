@@ -3,7 +3,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import time
-
+import re
 
 class Faculties(Enum):
     MT = 'МТ'
@@ -12,12 +12,30 @@ class Faculties(Enum):
 
 
 class Group:
-    def __init__(self, faculty : Faculties, departmentNum : int, sessionId : int, groupNum : int, isBachelor : bool):
+    def __init__(self, faculty : Faculties, departmentNum : int, sessionNumber : int, groupNum : int, isBachelor : bool):
         self.faculty = faculty
         self.departmentNum = departmentNum
-        self.sessionId = sessionId
+        self.sessionNumber = sessionNumber
         self.groupNum = groupNum
         self.isBachelor = isBachelor * 1
+
+    @classmethod
+    def FromString(self, group : str):        
+        gr = re.split('(\d+)',group)
+
+        faculty = next((f for f in Faculties if f.value == gr[0]), "none")
+        if faculty == "none": return None
+
+        department = gr[1]
+
+        if len(gr[3]) == 2: sessionId = gr[3][0]
+        else: sessionId = gr[3][0:2]
+
+        groupNum = gr[3][-1]
+        isBachelor = gr[-1] == "Б"
+
+        return Group(faculty, department, sessionId, groupNum, isBachelor)
+
 
     @property
     def IsBachelor(self):
@@ -25,7 +43,7 @@ class Group:
 
     def ToString(self):
         isBac = "Б" * self.IsBachelor
-        return '{}{}-{}{}{}'.format(self.faculty.value, self.departmentNum, self.sessionId, self.groupNum, isBac)
+        return '{}{}-{}{}{}'.format(self.faculty.value, self.departmentNum, self.sessionNumber, self.groupNum, isBac)
     
 
 class DataParser:
@@ -57,14 +75,13 @@ class DataParser:
         filteredLis = list(filter(lambda li: li.find("b"), soup.find("ul", id="session-structure").find_all("li")))
 
         allGroupLinks = [li.find_all("a") for li in filteredLis]
-        return [li for subLi in allGroupLinks for li in subLi]
-        
+        return [li for subLi in allGroupLinks for li in subLi]        
 
     def GetAllDataByGroup(self, gr : Group):
         groupDataFrames = []
 
         remainder = -1
-        if gr.sessionId % 2 == 0: remainder = 1           
+        if gr.sessionNumber % 2 == 0: remainder = 1           
         else: remainder = 0
 
         suitableLinks = [link for link in self.SessionLinks if int(link.split("=")[-1]) % 2 == remainder]
@@ -78,7 +95,6 @@ class DataParser:
             groupDataFrames.append(self.__GetGroupData(self._mainPage + group.get("href"), sessionId))
 
         return pd.concat(groupDataFrames)
-
 
     def __CorrectField(self, mark : str):
         if mark == "Зчт":
