@@ -54,21 +54,27 @@ class DataParser:
         else:
             return 0
 
-    def __GetGroupData(self, groupLink : str) -> pd.DataFrame:
-        self.chromeDriver.get(groupLink)
-        soup = BeautifulSoup(self.chromeDriver.page_source)
+    def __GetGroupData(self, groupLink : str, sessionId : int) -> pd.DataFrame:
+            self.chromeDriver.get(groupLink)
+            soup = BeautifulSoup(self.chromeDriver.page_source)
 
-        table = soup.find("table", {"class" : "eu-table sortable-table"})
+            #if there is no data return an empty DF
+            splitedContent = ' '.join(soup.find("div", id="content").text.split())
+            if splitedContent == 'В этой группе нет студентов' or splitedContent == 'В этой группе нет дисциплин':
+                return pd.DataFrame()
 
-        tHeadValues = table.find("thead").find_all("th") 
-        tBodyRows = table.find("tbody").find_all("tr")
+            table = soup.find("table", {"class" : "eu-table sortable-table"})
+            groupName = soup.find("h1").text.split()[0]
+
+            tHeadValues = table.find("thead").find_all("th") 
+            tBodyRows = table.find("tbody").find_all("tr")
         
-        subjects = ["ФИО", "Номер зачетки"] + [th.find("span").text for th in tHeadValues[3:]]
-        data = [[td.find("span").text for td in row.find_all("td")[1:]] for row in tBodyRows]
+            subjects = ["#Группы", "#Сессии", "ФИО", "Номер зачетки"] + [th.find("span").text for th in tHeadValues[3:]]
+            data = [[groupName, sessionId] + [td.find("span").text for td in row.find_all("td")[1:]] for row in tBodyRows]
 
-        #converting str marks to int
-        for i in range(len(data)):
-            for j in range(2, len(data[0])):
-                data[i][j] = self.__CorrectField(data[i][j])
+            #converting str marks to int
+            for i in range(len(data)):
+                for j in range(2, len(data[0])):
+                    data[i][j] = self.__CorrectField(data[i][j])
 
-        return pd.DataFrame(data, columns=subjects)
+            return pd.DataFrame(data, columns=subjects)
