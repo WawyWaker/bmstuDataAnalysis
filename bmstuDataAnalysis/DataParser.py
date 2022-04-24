@@ -19,6 +19,14 @@ class Group:
         self.groupNum = groupNum
         self.isBachelor = isBachelor * 1
 
+    @property
+    def IsBachelor(self):
+        return self.isBachelor == 1
+
+    def ToString(self):
+        isBac = "Б" * self.IsBachelor
+        return '{}{}-{}{}{}'.format(self.faculty.value, self.departmentNum, self.sessionId, self.groupNum, isBac)
+    
 
 class DataParser:
 
