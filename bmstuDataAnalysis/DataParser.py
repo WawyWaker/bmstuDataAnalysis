@@ -126,7 +126,10 @@ class DataParser:
             tBodyRows = table.find("tbody").find_all("tr")
         
             subjects = ["#Группы", "#Сессии", "ФИО", "Номер зачетки"] + [th.find("span").text for th in tHeadValues[3:]]
-            data = [[groupName, sessionId] + [td.find("span").text for td in row.find_all("td")[1:]] for row in tBodyRows]
+            data = [[groupName, sessionId] + [next((t.find("span").text for t in [td] if t.find("span")), None) or 
+                                              None for \
+                                                    td in row.find_all("td")[1:]] \
+                                                                    for row in tBodyRows]
 
             #converting str marks to int
             for i in range(len(data)):
@@ -134,4 +137,31 @@ class DataParser:
                     data[i][j] = self.__CorrectField(data[i][j])
 
             return pd.DataFrame(data, columns=subjects)
+
+    def GetAllDataByFaculty(self, faculty : Faculties):
+        retDict = {}
+
+        for sL in self.SessionLinks:
+            sessionId = int(sL.split("=")[-1])
+
+            self.chromeDriver.get(sL)
+            soup = BeautifulSoup(self.chromeDriver.page_source)
+
+            faculties = [li for li in soup.find("span", id="left-column").find_all("li") if li.find("b")]
+            facultyLi = next((f for f in faculties if f.text.split()[0] == faculty.value), "none")
+
+            facultyGroups = [a for a in facultyLi.find_all("a")]
+
+            for gr in facultyGroups[:5]:
+                group = Group.FromString(gr.text)
+                data = self.__GetGroupData(self._mainPage + gr.get("href"), sessionId)
+
+                if not group.ToString() in retDict:
+                    retDict[group.ToString()] = data
+                else: retDict[group.ToString()] = pd.concat([retDict[group.ToString()], data])
+
+
+                
+
+        return retDict
 
