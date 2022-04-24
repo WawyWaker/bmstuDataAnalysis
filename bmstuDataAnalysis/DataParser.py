@@ -74,15 +74,17 @@ class DataParser:
 
     def __CorrectField(self, mark : str):
         if mark == "Зчт":
-            return 1
+            return True
         elif mark == "Отл":
-            return 5
+            return 5.0
         elif mark == "Хор":
-            return 4
+            return 4.0
         elif mark == "Удов":
-            return 3
+            return 3.0
+        elif any(mark == elem for elem in ["Я", "Нзч", "Дк", "НА", "Неуд"]):
+            return False
         else:
-            return 0
+            return mark
 
     def __GetGroupData(self, groupLink : str, sessionId : int) -> pd.DataFrame:
             self.chromeDriver.get(groupLink)
