@@ -5,10 +5,19 @@ from selenium import webdriver
 import time
 
 
-class Groups(Enum):
+class Faculties(Enum):
     MT = 'МТ'
     SM = 'СМ'
     IU = 'ИУ'
+
+
+class Group:
+    def __init__(self, faculty : Faculties, departmentNum : int, sessionId : int, groupNum : int, isBachelor : bool):
+        self.faculty = faculty
+        self.departmentNum = departmentNum
+        self.sessionId = sessionId
+        self.groupNum = groupNum
+        self.isBachelor = isBachelor * 1
 
 
 class DataParser:
@@ -42,6 +51,27 @@ class DataParser:
         allGroupLinks = [li.find_all("a") for li in filteredLis]
         return [li for subLi in allGroupLinks for li in subLi]
         
+
+    def GetAllDataByGroup(self, gr : Group):
+        groupDataFrames = []
+
+        remainder = -1
+        if gr.sessionId % 2 == 0: remainder = 1           
+        else: remainder = 0
+
+        suitableLinks = [link for link in self.SessionLinks if int(link.split("=")[-1]) % 2 == remainder]
+
+        for sL in suitableLinks:
+            sessionId = int(sL.split("=")[-1])
+
+            allGroupLinks = self.__GetAllGroups(sL)
+            group = next((link for link in allGroupLinks if link.text == gr.ToString()), "none")
+            if group == "none": continue            
+            groupDataFrames.append(self.__GetGroupData(self._mainPage + group.get("href"), sessionId))
+
+        return pd.concat(groupDataFrames)
+
+
     def __CorrectField(self, mark : str):
         if mark == "Зчт":
             return 1
@@ -78,3 +108,4 @@ class DataParser:
                     data[i][j] = self.__CorrectField(data[i][j])
 
             return pd.DataFrame(data, columns=subjects)
+
