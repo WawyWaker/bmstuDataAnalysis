@@ -5,10 +5,19 @@ from selenium import webdriver
 import time
 import re
 
+import os
+
 class Faculties(Enum):
     MT = 'МТ'
     SM = 'СМ'
     IU = 'ИУ'
+    IBM = 'ИБМ'
+    RK = 'РК'
+    RKT = 'РКТ'
+    RL = 'РЛ'
+    FN = 'ФН'
+    E = 'Э'
+    UR = 'ЮР'
 
 
 class Group:
@@ -77,11 +86,11 @@ class DataParser:
         allGroupLinks = [li.find_all("a") for li in filteredLis]
         return [li for subLi in allGroupLinks for li in subLi]        
 
-    def GetAllDataByGroup(self, gr : Group):
+    def GetAllDataByGroup(self, gr : Group) -> pd.DataFrame:
         groupDataFrames = []
 
         remainder = -1
-        if gr.sessionNumber % 2 == 0: remainder = 1           
+        if int(gr.sessionNumber) % 2 == 0: remainder = 1           
         else: remainder = 0
 
         suitableLinks = [link for link in self.SessionLinks if int(link.split("=")[-1]) % 2 == remainder]
@@ -111,10 +120,12 @@ class DataParser:
             return mark
 
     def __GetGroupData(self, groupLink : str, sessionId : int) -> pd.DataFrame:
-            self.chromeDriver.get(groupLink)
+            
+            self.chromeDriver.get(groupLink)          
             soup = BeautifulSoup(self.chromeDriver.page_source)
 
             #if there is no data return an empty DF
+            if not soup.find("div", id="content"): return pd.DataFrame()
             splitedContent = ' '.join(soup.find("div", id="content").text.split())
             if splitedContent == 'В этой группе нет студентов' or splitedContent == 'В этой группе нет дисциплин':
                 return pd.DataFrame()
