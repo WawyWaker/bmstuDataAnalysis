@@ -138,11 +138,27 @@ class DataParser:
 
             return pd.DataFrame(data, columns=subjects)
 
-    def GetAllDataByFaculty(self, faculty : Faculties):
-        retDict = {}
+    def SaveAllDataByFaculty(self, faculty : Faculties):
 
-        for sL in self.SessionLinks:
-            sessionId = int(sL.split("=")[-1])
+        savePath = "C:\\Users\\Wawe\\PycharmProjects\\dataAnalysis\\bmstuDataAnalysis\\data"
+        facultyPath = os.path.join(savePath, faculty.value)        
+
+        if not os.path.exists(facultyPath): os.makedirs(facultyPath) 
+
+        log = "{}\\log.txt".format(facultyPath)
+        
+        lastLink = ""
+        start = -1
+
+        if os.stat(log).st_size != 0:
+            with open(log, "r") as f:
+                for link in f:
+                    lastLink = link
+                    start = self.SessionLinks.index(lastLink.strip())
+        else: start = 0
+        
+        for sL in self.SessionLinks[start:]:
+            sessionId = int(sL.split("=")[-1])            
 
             self.chromeDriver.get(sL)
             soup = BeautifulSoup(self.chromeDriver.page_source)
@@ -152,16 +168,20 @@ class DataParser:
 
             facultyGroups = [a for a in facultyLi.find_all("a")]
 
-            for gr in facultyGroups[:5]:
+            for gr in facultyGroups:
                 group = Group.FromString(gr.text)
-                data = self.__GetGroupData(self._mainPage + gr.get("href"), sessionId)
+                groupPath = "{}\\{}\\".format(facultyPath, group.ToString())
 
-                if not group.ToString() in retDict:
-                    retDict[group.ToString()] = data
-                else: retDict[group.ToString()] = pd.concat([retDict[group.ToString()], data])
+                if not os.path.exists(groupPath):
+                    os.makedirs(groupPath) 
 
+                grSessionPath = "{}{}.txt".format(groupPath, str(sessionId))
+                if not os.path.exists(grSessionPath):
+                    data = self.__GetGroupData(self._mainPage + gr.get("href"), sessionId)
+                    if data.empty: continue
+                    data.to_csv(grSessionPath, sep="\t", encoding="utf-8")
 
-                
+            with open(log, "a") as f:
+                f.write("{}\n".format(sL))
 
-        return retDict
 
