@@ -366,3 +366,5 @@ FodyWeavers.xsd
 
 #Students Data
 data/
+venv/
+.idea/

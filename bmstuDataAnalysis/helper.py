@@ -1,6 +1,10 @@
 from enum import Enum
 import re
 
+import pandas as pd
+from bs4 import BeautifulSoup
+from selenium import webdriver
+
 
 class Faculties(Enum):
     MT = 'МТ'
@@ -56,3 +60,21 @@ class Group:
     def to_string(self) -> str:
         postfix = self.is_bac * "Б" + self.is_phd * "А"
         return f'{self.faculty.value}{self.dep_id}-{self.ses_id}{self.gr_num}{postfix}'
+
+
+def parse_use() -> pd.DataFrame:
+    driver = webdriver.Chrome()
+    driver.get("https://bmstu.ru/bachelor/previous-points")
+    soup = BeautifulSoup(driver.page_source)
+
+    table = soup.find("table", {"class": "_1Ii2q _24JIz _2dfKK"})
+    table_head = table.find("thead").find_all("tr")
+    table_body = table.find("tbody").find_all("tr")
+
+    columns = [th.text for th in table_head[0].find_all("th")]
+    values = [[td.text for td in tr.contents] for tr in table_body]
+
+    data_rows = [row[:5] + row[5:][0::2] for row in values]
+
+    driver.close()
+    return pd.DataFrame(data=data_rows, columns=columns)
