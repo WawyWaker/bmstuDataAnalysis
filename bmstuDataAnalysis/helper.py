@@ -65,7 +65,7 @@ class Group:
 def parse_use() -> pd.DataFrame:
     driver = webdriver.Chrome()
     driver.get("https://bmstu.ru/bachelor/previous-points")
-    soup = BeautifulSoup(driver.page_source)
+    soup = BeautifulSoup(driver.page_source, features="html.parser")
 
     table = soup.find("table", {"class": "_1Ii2q _24JIz _2dfKK"})
     table_head = table.find("thead").find_all("tr")
